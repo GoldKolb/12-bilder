@@ -1,162 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>360° Schmuck Viewer</title>
-<style>
-  body {
-    margin: 0;
-    background: #000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  #viewer {
-    max-width: 100%;
-    max-height: 100%;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>360° Schmuck</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #viewer {
+      width: 600px;
+      height: 600px;
+      overflow: hidden;
+      cursor: default;
+    }
+    #viewer img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+  </style>
 </head>
 <body>
+  <div id="viewer">
+    <img id="spinImage" src="EinzelA01.jpg" alt="360° Schmuck">
+  </div>
 
-<img id="viewer" src="EinzelA01.JPG" alt="360° Schmuck" />
+  <script>
+    const totalFrames = 12;
+    const frameDelay = 100;
+    const image = document.getElementById("spinImage");
+    let currentFrame = 1;
+    let isDragging = false;
+    let startX = 0;
+    let autoSpin = true;
+    let spinInterval;
+    let restartTimeout;
 
-<script>
-  (function() {
-    var img = document.getElementById('viewer');
-    var totalFrames = 12;             // Anzahl deiner Bilder
-    var currentFrame = 1;
-    var rotationSpeed = 150;          // Zeit in ms zwischen Bildwechsel
-    var autoRotateInterval;
-    var isDragging = false;
-    var dragStartX = 0;
-    var frameAtDragStart = 1;
-    var inactivityTimeout;
-    var inactivityDelay = 5000;       // 5 Sekunden nach Interaktion Neustart
-
-    function updateImage(frame) {
-      var frameStr = frame < 10 ? "0" + frame : frame;
-      img.src = "EinzelA" + frameStr + ".JPG";
+    // Image loading check
+    function padNumber(n) {
+      return n.toString().padStart(2, '0');
     }
 
-    function nextFrame() {
-      currentFrame++;
-      if (currentFrame > totalFrames) currentFrame = 1;
-      updateImage(currentFrame);
+    function getImageSrc(n) {
+      return `EinzelA${padNumber(n)}.JPG`; // Achte hier auf .jpg oder .JPG!
     }
 
-    function startAutoRotate() {
-      stopAutoRotate();
-      autoRotateInterval = setInterval(nextFrame, rotationSpeed);
+    function updateImage() {
+      image.src = getImageSrc(currentFrame);
     }
 
-    function stopAutoRotate() {
-      if (autoRotateInterval) {
-        clearInterval(autoRotateInterval);
-        autoRotateInterval = null;
-      }
+    function spinFrames() {
+      spinInterval = setInterval(() => {
+        currentFrame = currentFrame % totalFrames + 1;
+        updateImage();
+      }, frameDelay);
     }
 
-    function resetInactivityTimer() {
-      if (inactivityTimeout) clearTimeout(inactivityTimeout);
-      inactivityTimeout = setTimeout(() => {
-        if (!isDragging) {
-          startAutoRotate();
-        }
-      }, inactivityDelay);
+    function stopSpinning() {
+      clearInterval(spinInterval);
+      autoSpin = false;
     }
 
-    // Auto-Rotation starten beim Laden der Seite
-    startAutoRotate();
+    function restartSpinning() {
+      stopSpinning();
+      restartTimeout = setTimeout(() => {
+        autoSpin = true;
+        spinFrames();
+      }, 5000);
+    }
 
-    // Maus-Down: Drag starten
-    img.addEventListener('mousedown', function(e) {
+    function handleMouseDown(e) {
       isDragging = true;
-      stopAutoRotate();
-      dragStartX = e.clientX;
-      frameAtDragStart = currentFrame;
-      e.preventDefault();  // Verhindert z.B. Bildauswahl
-    });
+      startX = e.clientX;
+      stopSpinning();
+    }
 
-    // Maus-Move: Rotation durchziehen
-    img.addEventListener('mousemove', function(e) {
+    function handleMouseMove(e) {
       if (!isDragging) return;
-
-      var deltaX = e.clientX - dragStartX;
-      var frameShift = Math.floor(deltaX / 10); // 10px pro Frame wechseln
-
-      var newFrame = frameAtDragStart + frameShift;
-      while (newFrame < 1) newFrame += totalFrames;
-      while (newFrame > totalFrames) newFrame -= totalFrames;
-
-      if (newFrame !== currentFrame) {
-        currentFrame = newFrame;
-        updateImage(currentFrame);
+      const delta = e.clientX - startX;
+      if (Math.abs(delta) >= 10) {
+        currentFrame = (currentFrame + (delta > 0 ? -1 : 1) + totalFrames - 1) % totalFrames + 1;
+        updateImage();
+        startX = e.clientX;
       }
+    }
 
-      resetInactivityTimer();
-    });
+    function handleMouseUp() {
+      isDragging = false;
+      restartSpinning();
+    }
 
-    // Maus-Up: Drag beenden und Timer für Neustart
-    img.addEventListener('mouseup', function(e) {
-      if (isDragging) {
-        isDragging = false;
-        resetInactivityTimer();
+    // Touch support
+    function handleTouchStart(e) {
+      startX = e.touches[0].clientX;
+      stopSpinning();
+    }
+
+    function handleTouchMove(e) {
+      const delta = e.touches[0].clientX - startX;
+      if (Math.abs(delta) >= 10) {
+        currentFrame = (currentFrame + (delta > 0 ? -1 : 1) + totalFrames - 1) % totalFrames + 1;
+        updateImage();
+        startX = e.touches[0].clientX;
       }
-    });
+    }
 
-    // Maus verlässt Bild: Drag beenden
-    img.addEventListener('mouseleave', function(e) {
-      if (isDragging) {
-        isDragging = false;
-        resetInactivityTimer();
-      }
-    });
+    function handleTouchEnd() {
+      restartSpinning();
+    }
 
-    // Touch-Events für mobile Geräte (optional)
-    img.addEventListener('touchstart', function(e) {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        stopAutoRotate();
-        dragStartX = e.touches[0].clientX;
-        frameAtDragStart = currentFrame;
-      }
-    }, {passive: true});
+    // Event Listeners
+    image.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
 
-    img.addEventListener('touchmove', function(e) {
-      if (!isDragging || e.touches.length !== 1) return;
+    image.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
 
-      var deltaX = e.touches[0].clientX - dragStartX;
-      var frameShift = Math.floor(deltaX / 10);
-
-      var newFrame = frameAtDragStart + frameShift;
-      while (newFrame < 1) newFrame += totalFrames;
-      while (newFrame > totalFrames) newFrame -= totalFrames;
-
-      if (newFrame !== currentFrame) {
-        currentFrame = newFrame;
-        updateImage(currentFrame);
-      }
-      resetInactivityTimer();
-    }, {passive: true});
-
-    img.addEventListener('touchend', function(e) {
-      if (isDragging) {
-        isDragging = false;
-        resetInactivityTimer();
-      }
-    });
-
-    // Kein Cursor-Wechsel (bleibt Standard-Pfeil)
-    // Einfach nichts an cursor style ändern
-  })();
-</script>
-
+    // Start spinning on load
+    updateImage();
+    spinFrames();
+  </script>
 </body>
 </html>
+
