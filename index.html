@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>360° Schmuck</title>
   <style>
     body {
@@ -15,13 +15,6 @@
     }
 
     canvas {
-      image-rendering: optimizeSpeed;
-      image-rendering: -moz-crisp-edges;
-      image-rendering: -o-crisp-edges;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-      image-rendering: pixelated;
-      -ms-interpolation-mode: nearest-neighbor;
       cursor: default;
     }
   </style>
@@ -70,7 +63,7 @@
       requestAnimationFrame(rotate);
     }
 
-    function resetInactivity() {
+    function resetInactivityTimer() {
       clearTimeout(inactivityTimer);
       autoRotate = false;
       inactivityTimer = setTimeout(function () {
@@ -78,10 +71,11 @@
       }, 5000);
     }
 
+    // Maus-Events
     canvas.addEventListener('mousedown', function (e) {
       isDragging = true;
       lastX = e.clientX;
-      resetInactivity();
+      resetInactivityTimer();
     });
 
     window.addEventListener('mouseup', function () {
@@ -95,16 +89,16 @@
           currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
           drawFrame(currentFrame);
           lastX = e.clientX;
-          resetInactivity();
+          resetInactivityTimer();
         }
       }
     });
 
-    // Touch support
+    // Touch-Events
     canvas.addEventListener('touchstart', function (e) {
       isDragging = true;
       lastX = e.touches[0].clientX;
-      resetInactivity();
+      resetInactivityTimer();
     });
 
     canvas.addEventListener('touchend', function () {
@@ -118,11 +112,12 @@
           currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
           drawFrame(currentFrame);
           lastX = e.touches[0].clientX;
-          resetInactivity();
+          resetInactivityTimer();
         }
       }
     });
 
+    // Start
     preloadImages(function () {
       drawFrame(currentFrame);
       rotate();
