@@ -1,138 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>360° Schmuck</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    canvas {
-      cursor: default;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>360° Schmuck Viewer</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  #viewer {
+    max-width: 100%;
+    max-height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+</style>
 </head>
 <body>
-  <canvas id="viewer" width="800" height="800"></canvas>
 
-  <script>
-    const canvas = document.getElementById('viewer');
-    const ctx = canvas.getContext('2d');
+<img id="viewer" src="EinzelA01.jpg" alt="360° Schmuck" />
 
-    const frameCount = 12;
-    const images = [];
-    let currentFrame = 0;
-    let isDragging = false;
-    let startX = 0;
-    let autoRotate = true;
-    let rotateInterval;
-    let inactivityTimer;
+<script>
+  (function() {
+    var img = document.getElementById('viewer');
+    var totalFrames = 12;             // Anzahl deiner Bilder
+    var currentFrame = 1;
+    var rotationSpeed = 150;          // Zeit in ms zwischen Bildwechsel
+    var autoRotateInterval;
+    var isDragging = false;
+    var dragStartX = 0;
+    var frameAtDragStart = 1;
+    var inactivityTimeout;
+    var inactivityDelay = 5000;       // 5 Sekunden nach Interaktion Neustart
 
-    function preloadImages() {
-      for (let i = 1; i <= frameCount; i++) {
-        const img = new Image();
-        const number = i.toString().padStart(2, '0'); // 01, 02, ...
-        img.src = `EinzelA${number}.jpg`;
-        images.push(img);
-      }
+    function updateImage(frame) {
+      var frameStr = frame < 10 ? "0" + frame : frame;
+      img.src = "EinzelA" + frameStr + ".jpg";
     }
 
-    function drawFrame(index) {
-      const img = images[index];
-      if (img && img.complete) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      }
+    function nextFrame() {
+      currentFrame++;
+      if (currentFrame > totalFrames) currentFrame = 1;
+      updateImage(currentFrame);
     }
 
     function startAutoRotate() {
       stopAutoRotate();
-      rotateInterval = setInterval(() => {
-        currentFrame = (currentFrame + 1) % frameCount;
-        drawFrame(currentFrame);
-      }, 100); // Geschwindigkeit: 100ms pro Bild
-      autoRotate = true;
+      autoRotateInterval = setInterval(nextFrame, rotationSpeed);
     }
 
     function stopAutoRotate() {
-      clearInterval(rotateInterval);
-      autoRotate = false;
+      if (autoRotateInterval) {
+        clearInterval(autoRotateInterval);
+        autoRotateInterval = null;
+      }
     }
 
     function resetInactivityTimer() {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        if (!autoRotate) {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(() => {
+        if (!isDragging) {
           startAutoRotate();
         }
-      }, 5000); // 5 Sekunden bis Neustart
+      }, inactivityDelay);
     }
 
-    canvas.addEventListener('mousedown', (e) => {
+    // Auto-Rotation starten beim Laden der Seite
+    startAutoRotate();
+
+    // Maus-Down: Drag starten
+    img.addEventListener('mousedown', function(e) {
       isDragging = true;
-      startX = e.clientX;
       stopAutoRotate();
+      dragStartX = e.clientX;
+      frameAtDragStart = currentFrame;
+      e.preventDefault();  // Verhindert z.B. Bildauswahl
     });
 
-    canvas.addEventListener('mousemove', (e) => {
+    // Maus-Move: Rotation durchziehen
+    img.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+
+      var deltaX = e.clientX - dragStartX;
+      var frameShift = Math.floor(deltaX / 10); // 10px pro Frame wechseln
+
+      var newFrame = frameAtDragStart + frameShift;
+      while (newFrame < 1) newFrame += totalFrames;
+      while (newFrame > totalFrames) newFrame -= totalFrames;
+
+      if (newFrame !== currentFrame) {
+        currentFrame = newFrame;
+        updateImage(currentFrame);
+      }
+
+      resetInactivityTimer();
+    });
+
+    // Maus-Up: Drag beenden und Timer für Neustart
+    img.addEventListener('mouseup', function(e) {
       if (isDragging) {
-        const delta = e.clientX - startX;
-        if (Math.abs(delta) > 5) {
-          const direction = delta > 0 ? -1 : 1;
-          currentFrame = (currentFrame + direction + frameCount) % frameCount;
-          drawFrame(currentFrame);
-          startX = e.clientX;
-        }
+        isDragging = false;
         resetInactivityTimer();
       }
     });
 
-    canvas.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-      isDragging = false;
-    });
-
-    canvas.addEventListener('touchstart', (e) => {
-      isDragging = true;
-      startX = e.touches[0].clientX;
-      stopAutoRotate();
-    });
-
-    canvas.addEventListener('touchmove', (e) => {
+    // Maus verlässt Bild: Drag beenden
+    img.addEventListener('mouseleave', function(e) {
       if (isDragging) {
-        const delta = e.touches[0].clientX - startX;
-        if (Math.abs(delta) > 5) {
-          const direction = delta > 0 ? -1 : 1;
-          currentFrame = (currentFrame + direction + frameCount) % frameCount;
-          drawFrame(currentFrame);
-          startX = e.touches[0].clientX;
-        }
+        isDragging = false;
         resetInactivityTimer();
       }
     });
 
-    canvas.addEventListener('touchend', () => {
-      isDragging = false;
+    // Touch-Events für mobile Geräte (optional)
+    img.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        stopAutoRotate();
+        dragStartX = e.touches[0].clientX;
+        frameAtDragStart = currentFrame;
+      }
+    }, {passive: true});
+
+    img.addEventListener('touchmove', function(e) {
+      if (!isDragging || e.touches.length !== 1) return;
+
+      var deltaX = e.touches[0].clientX - dragStartX;
+      var frameShift = Math.floor(deltaX / 10);
+
+      var newFrame = frameAtDragStart + frameShift;
+      while (newFrame < 1) newFrame += totalFrames;
+      while (newFrame > totalFrames) newFrame -= totalFrames;
+
+      if (newFrame !== currentFrame) {
+        currentFrame = newFrame;
+        updateImage(currentFrame);
+      }
+      resetInactivityTimer();
+    }, {passive: true});
+
+    img.addEventListener('touchend', function(e) {
+      if (isDragging) {
+        isDragging = false;
+        resetInactivityTimer();
+      }
     });
 
-    window.onload = () => {
-      preloadImages();
-      const checkLoaded = setInterval(() => {
-        if (images.every(img => img.complete)) {
-          clearInterval(checkLoaded);
-          drawFrame(currentFrame);
-          startAutoRotate();
-        }
-      }, 100);
-    };
-  </script>
+    // Kein Cursor-Wechsel (bleibt Standard-Pfeil)
+    // Einfach nichts an cursor style ändern
+  })();
+</script>
+
 </body>
 </html>
