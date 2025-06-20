@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>360° Schmuck</title>
   <style>
     body {
@@ -15,6 +15,13 @@
     }
 
     canvas {
+      image-rendering: optimizeSpeed;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -o-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
       cursor: default;
     }
   </style>
@@ -33,14 +40,13 @@
     let lastX = 0;
     let autoRotate = true;
     let inactivityTimer;
-    let lastRotateTime = 0;
 
     function preloadImages(callback) {
       let loaded = 0;
       for (let i = 1; i <= totalImages; i++) {
         const img = new Image();
         const number = i < 10 ? '0' + i : i;
-        img.src = 'EinzelA' + number + '.JPG'; // Großes JPG hier beibehalten
+        img.src = 'EinzelA' + number + '.JPG';
         img.onload = function () {
           loaded++;
           if (loaded === totalImages) {
@@ -52,32 +58,19 @@
     }
 
     function drawFrame(index) {
-      const img = images[index];
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Proportional skalieren und mittig platzieren
-      const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const imgWidth = img.width * scale;
-      const imgHeight = img.height * scale;
-      const x = (canvas.width - imgWidth) / 2;
-      const y = (canvas.height - imgHeight) / 2;
-
-      ctx.drawImage(img, x, y, imgWidth, imgHeight);
+      ctx.drawImage(images[index], 0, 0, canvas.width, canvas.height);
     }
 
-    function rotate(timestamp) {
-      if (!lastRotateTime) lastRotateTime = timestamp;
-
-      if (autoRotate && timestamp - lastRotateTime > 100) { // 100ms = 10fps
+    function rotate() {
+      if (autoRotate) {
         currentFrame = (currentFrame + 1) % totalImages;
         drawFrame(currentFrame);
-        lastRotateTime = timestamp;
       }
-
       requestAnimationFrame(rotate);
     }
 
-    function resetInactivityTimer() {
+    function resetInactivity() {
       clearTimeout(inactivityTimer);
       autoRotate = false;
       inactivityTimer = setTimeout(function () {
@@ -88,7 +81,7 @@
     canvas.addEventListener('mousedown', function (e) {
       isDragging = true;
       lastX = e.clientX;
-      resetInactivityTimer();
+      resetInactivity();
     });
 
     window.addEventListener('mouseup', function () {
@@ -102,15 +95,16 @@
           currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
           drawFrame(currentFrame);
           lastX = e.clientX;
-          resetInactivityTimer();
+          resetInactivity();
         }
       }
     });
 
+    // Touch support
     canvas.addEventListener('touchstart', function (e) {
       isDragging = true;
       lastX = e.touches[0].clientX;
-      resetInactivityTimer();
+      resetInactivity();
     });
 
     canvas.addEventListener('touchend', function () {
@@ -124,14 +118,14 @@
           currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
           drawFrame(currentFrame);
           lastX = e.touches[0].clientX;
-          resetInactivityTimer();
+          resetInactivity();
         }
       }
     });
 
     preloadImages(function () {
       drawFrame(currentFrame);
-      requestAnimationFrame(rotate);
+      rotate();
     });
   </script>
 </body>
