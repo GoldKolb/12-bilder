@@ -1,33 +1,134 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>360° Schmuck</title>
-  <style>
-    body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    img { width: 500px; max-width: 90%; }
-  </style>
+<meta charset="UTF-8" />
+<title>360° Viewer</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%; display: flex; justify-content: center; align-items: center;
+    background: #111;
+  }
+  #viewer {
+    width: 500px;  /* kannst du anpassen */
+    height: 500px;
+    user-select: none; /* kein Textmarkieren */
+    cursor: grab;
+  }
+  #viewer:active {
+    cursor: grabbing;
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none; /* verhindert, dass Maus das Bild stört */
+  }
+</style>
 </head>
 <body>
-  <img id="viewer" src="EinzelA01.jpg" alt="360 Grad Schmuck">
 
-  <script>
-    const totalImages = 12;
-    const prefix = "EinzelA";
-    const suffix = ".JPG";
-    const viewer = document.getElementById("viewer");
-    let index = 1;
+<div id="viewer">
+  <img id="frame" src="EinzelA01.JPG" alt="360° View" />
+</div>
 
-    function pad(num) {
-      return num < 10 ? "0" + num : num;
+<script>
+  const totalFrames = 12;
+  const imagePrefix = 'EinzelA';  // Vorsilbe deiner Bilder
+  const imageExt = '.JPG';        // Dateiendung, Groß/Kleinschreibung beachten
+  let currentFrame = 1;
+  let isDragging = false;
+  let startX = 0;
+  let currentX = 0;
+  let autoRotate = true;
+  const rotationSpeed = 150; // Zeit in ms zwischen Frames (kleiner = schneller)
+  let intervalId;
+
+  const frameImg = document.getElementById('frame');
+  const viewer = document.getElementById('viewer');
+
+  function updateImage(frame) {
+    const frameNumber = frame.toString().padStart(2, '0'); // 01, 02 ...
+    frameImg.src = imagePrefix + frameNumber + imageExt;
+  }
+
+  function startAutoRotate() {
+    intervalId = setInterval(() => {
+      if (!isDragging) {
+        currentFrame++;
+        if (currentFrame > totalFrames) currentFrame = 1;
+        updateImage(currentFrame);
+      }
+    }, rotationSpeed);
+  }
+
+  function stopAutoRotate() {
+    clearInterval(intervalId);
+  }
+
+  // Mouse Events
+  viewer.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    stopAutoRotate();
+  });
+
+  viewer.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      currentX = e.clientX;
+      let delta = currentX - startX;
+      if (Math.abs(delta) > 5) { // Schwelle für Framewechsel
+        let frameChange = Math.floor(delta / 10);
+        currentFrame -= frameChange;
+        if (currentFrame < 1) currentFrame = totalFrames;
+        if (currentFrame > totalFrames) currentFrame = 1;
+        updateImage(currentFrame);
+        startX = currentX;
+      }
     }
+  });
 
-    function updateImage() {
-      index = (index % totalImages) + 1;
-      viewer.src = prefix + pad(index) + suffix;
+  viewer.addEventListener('mouseup', () => {
+    isDragging = false;
+    startAutoRotate();
+  });
+
+  viewer.addEventListener('mouseleave', () => {
+    if (isDragging) {
+      isDragging = false;
+      startAutoRotate();
     }
+  });
 
-    setInterval(updateImage, 100); // alle 100ms ein neues Bild
-  </script>
+  // Touch Events für mobile Geräte
+  viewer.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    startX = e.touches[0].clientX;
+    stopAutoRotate();
+  });
+
+  viewer.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+      currentX = e.touches[0].clientX;
+      let delta = currentX - startX;
+      if (Math.abs(delta) > 5) {
+        let frameChange = Math.floor(delta / 10);
+        currentFrame -= frameChange;
+        if (currentFrame < 1) currentFrame = totalFrames;
+        if (currentFrame > totalFrames) currentFrame = 1;
+        updateImage(currentFrame);
+        startX = currentX;
+      }
+    }
+  });
+
+  viewer.addEventListener('touchend', () => {
+    isDragging = false;
+    startAutoRotate();
+  });
+
+  // Starte automatische Rotation direkt beim Laden
+  startAutoRotate();
+</script>
+
 </body>
 </html>
