@@ -1,38 +1,36 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<title>360° Schmuck-Viewer</title>
-<style>
-  body { margin: 0; background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-  img { max-width: 600px; user-select: none; cursor: grab; }
-</style>
+  <meta charset="UTF-8" />
+  <title>360° Schmuck</title>
+  <style>
+    body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    img { width: 500px; max-width: 90%; }
+  </style>
 </head>
 <body>
+  <img id="viewer" src="EinzelA01.jpg" alt="360 Grad Schmuck">
 
-<img id="viewer" src="EinzelA01.jpg" alt="360 Grad Schmuck" />
+  <script>
+    const totalImages = 12;
+    const prefix = "EinzelA";
+    const suffix = ".jpg";
+    const viewer = document.getElementById("viewer");
+    let index = 1;
 
-<script>
-  const totalFrames = 12; // Anzahl der Bilder
-  let currentFrame = 0;
-  const viewer = document.getElementById('viewer');
+    function pad(num) {
+      return num < 10 ? "0" + num : num;
+    }
 
-  // Bildernamen generieren
-  function getImageName(index) {
-    let num = (index + 1).toString().padStart(2, '0'); // 01, 02, ...
-    return `EinzelA${num}.jpg`; // Passe hier an, wenn Bilder anders heißen
-  }
+    function updateImage() {
+      index = (index % totalImages) + 1;
+      viewer.src = prefix + pad(index) + suffix;
+    }
 
-  // Automatisches Drehen beim Laden - Endlosschleife
-  function autoRotate() {
-    currentFrame = (currentFrame + 1) % totalFrames;
-    viewer.src = getImageName(currentFrame);
-  }
-
-  // Alle 150ms Bild wechseln (anpassen für Geschwindigkeit)
-  setInterval(autoRotate, 150);
-</script>
-
+    setInterval(updateImage, 100); // alle 100ms ein neues Bild
+  </script>
 </body>
 </html>
+
+
 
