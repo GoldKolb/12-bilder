@@ -5,23 +5,20 @@
   <title>360° Schmuck</title>
   <style>
     body {
-      background: black;
       margin: 0;
+      background-color: #000;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
     }
-
     canvas {
-      width: 1000px;
-      height: 1000px;
-      user-select: none;
+      cursor: default;
     }
   </style>
 </head>
 <body>
-  <canvas id="viewer" width="1000" height="1000"></canvas>
+  <canvas id="viewer" width="800" height="800"></canvas>
 
   <script>
     const canvas = document.getElementById('viewer');
@@ -33,109 +30,109 @@
     let isDragging = false;
     let startX = 0;
     let autoRotate = true;
-    let inactivityTimeout;
+    let rotateInterval;
+    let inactivityTimer;
 
-    // Lade alle Bilder
-    for (let i = 1; i <= frameCount; i++) {
-      const number = i.toString().padStart(2, '0'); // 01, 02, ...
-      const img = new Image();"EinzelA01.jpg"
-      img.src = `EinzelA${number}.jpg`;
-      images.push(img);
+    function preloadImages() {
+      for (let i = 1; i <= frameCount; i++) {
+        const img = new Image();
+        const number = i.toString().padStart(2, '0'); // 01, 02, ...
+        img.src = `EinzelA${number}.jpg`;
+        images.push(img);
+      }
     }
 
-    // Zeige Bild
     function drawFrame(index) {
       const img = images[index];
-      if (img.complete) {
+      if (img && img.complete) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      } else {
-        img.onload = () => drawFrame(index);
       }
     }
 
-    // Automatische Rotation
-    function autoRotateLoop() {
-      if (autoRotate) {
+    function startAutoRotate() {
+      stopAutoRotate();
+      rotateInterval = setInterval(() => {
         currentFrame = (currentFrame + 1) % frameCount;
         drawFrame(currentFrame);
-      }
-      requestAnimationFrame(autoRotateLoop);
+      }, 100); // Geschwindigkeit: 100ms pro Bild
+      autoRotate = true;
     }
 
-    // Inaktivität resetten
+    function stopAutoRotate() {
+      clearInterval(rotateInterval);
+      autoRotate = false;
+    }
+
     function resetInactivityTimer() {
-      clearTimeout(inactivityTimeout);
-      inactivityTimeout = setTimeout(() => {
-        autoRotate = true;
-      }, 5000); // 5 Sekunden
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        if (!autoRotate) {
+          startAutoRotate();
+        }
+      }, 5000); // 5 Sekunden bis Neustart
     }
 
-    // Maus-Events
     canvas.addEventListener('mousedown', (e) => {
       isDragging = true;
-      autoRotate = false;
       startX = e.clientX;
-      resetInactivityTimer();
+      stopAutoRotate();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const delta = e.clientX - startX;
+        if (Math.abs(delta) > 5) {
+          const direction = delta > 0 ? -1 : 1;
+          currentFrame = (currentFrame + direction + frameCount) % frameCount;
+          drawFrame(currentFrame);
+          startX = e.clientX;
+        }
+        resetInactivityTimer();
+      }
     });
 
     canvas.addEventListener('mouseup', () => {
       isDragging = false;
-      resetInactivityTimer();
     });
 
     canvas.addEventListener('mouseleave', () => {
       isDragging = false;
     });
 
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const deltaX = e.clientX - startX;
-      if (Math.abs(deltaX) > 5) {
-        if (deltaX > 0) {
-          currentFrame = (currentFrame - 1 + frameCount) % frameCount;
-        } else {
-          currentFrame = (currentFrame + 1) % frameCount;
-        }
-        drawFrame(currentFrame);
-        startX = e.clientX;
-        resetInactivityTimer();
-      }
+    canvas.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      startX = e.touches[0].clientX;
+      stopAutoRotate();
     });
 
-    // Touch-Events (für Mobilgeräte)
-    canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        autoRotate = false;
-        startX = e.touches[0].clientX;
+    canvas.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        const delta = e.touches[0].clientX - startX;
+        if (Math.abs(delta) > 5) {
+          const direction = delta > 0 ? -1 : 1;
+          currentFrame = (currentFrame + direction + frameCount) % frameCount;
+          drawFrame(currentFrame);
+          startX = e.touches[0].clientX;
+        }
         resetInactivityTimer();
       }
     });
 
     canvas.addEventListener('touchend', () => {
       isDragging = false;
-      resetInactivityTimer();
     });
 
-    canvas.addEventListener('touchmove', (e) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const deltaX = e.touches[0].clientX - startX;
-      if (Math.abs(deltaX) > 5) {
-        if (deltaX > 0) {
-          currentFrame = (currentFrame - 1 + frameCount) % frameCount;
-        } else {
-          currentFrame = (currentFrame + 1) % frameCount;
+    window.onload = () => {
+      preloadImages();
+      const checkLoaded = setInterval(() => {
+        if (images.every(img => img.complete)) {
+          clearInterval(checkLoaded);
+          drawFrame(currentFrame);
+          startAutoRotate();
         }
-        drawFrame(currentFrame);
-        startX = e.touches[0].clientX;
-        resetInactivityTimer();
-      }
-    });
-
-    // Start
-    drawFrame(currentFrame);
-    autoRotateLoop();
+      }, 100);
+    };
   </script>
 </body>
 </html>
