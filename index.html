@@ -1,133 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>360° Schmuck</title>
   <style>
     body {
       margin: 0;
       background-color: black;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
-    }
-    #viewer {
-      width: 600px;
-      height: 600px;
       overflow: hidden;
-      cursor: default;
     }
-    #viewer img {
-      width: 100%;
-      height: auto;
-      display: block;
+
+    canvas {
+      image-rendering: optimizeSpeed;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -o-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
+      cursor: default;
     }
   </style>
 </head>
 <body>
-  <div id="viewer">
-    <img id="spinImage" src="EinzelA01.jpg" alt="360° Schmuck">
-  </div>
+  <canvas id="viewer" width="600" height="600"></canvas>
 
   <script>
-    const totalFrames = 12;
-    const frameDelay = 100;
-    const image = document.getElementById("spinImage");
-    let currentFrame = 1;
+    const canvas = document.getElementById('viewer');
+    const ctx = canvas.getContext('2d');
+
+    const totalImages = 12;
+    const images = [];
+    let currentFrame = 0;
     let isDragging = false;
-    let startX = 0;
-    let autoSpin = true;
-    let spinInterval;
-    let restartTimeout;
+    let lastX = 0;
+    let autoRotate = true;
+    let inactivityTimer;
 
-    // Image loading check
-    function padNumber(n) {
-      return n.toString().padStart(2, '0');
+    function preloadImages(callback) {
+      let loaded = 0;
+      for (let i = 1; i <= totalImages; i++) {
+        const img = new Image();
+        const number = i < 10 ? '0' + i : i;
+        img.src = 'EinzelA' + number + '.JPG';
+        img.onload = function () {
+          loaded++;
+          if (loaded === totalImages) {
+            callback();
+          }
+        };
+        images.push(img);
+      }
     }
 
-    function getImageSrc(n) {
-      return `EinzelA${padNumber(n)}.JPG`; // Achte hier auf .jpg oder .JPG!
+    function drawFrame(index) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(images[index], 0, 0, canvas.width, canvas.height);
     }
 
-    function updateImage() {
-      image.src = getImageSrc(currentFrame);
+    function rotate() {
+      if (autoRotate) {
+        currentFrame = (currentFrame + 1) % totalImages;
+        drawFrame(currentFrame);
+      }
+      requestAnimationFrame(rotate);
     }
 
-    function spinFrames() {
-      spinInterval = setInterval(() => {
-        currentFrame = currentFrame % totalFrames + 1;
-        updateImage();
-      }, frameDelay);
-    }
-
-    function stopSpinning() {
-      clearInterval(spinInterval);
-      autoSpin = false;
-    }
-
-    function restartSpinning() {
-      stopSpinning();
-      restartTimeout = setTimeout(() => {
-        autoSpin = true;
-        spinFrames();
+    function resetInactivity() {
+      clearTimeout(inactivityTimer);
+      autoRotate = false;
+      inactivityTimer = setTimeout(function () {
+        autoRotate = true;
       }, 5000);
     }
 
-    function handleMouseDown(e) {
+    canvas.addEventListener('mousedown', function (e) {
       isDragging = true;
-      startX = e.clientX;
-      stopSpinning();
-    }
+      lastX = e.clientX;
+      resetInactivity();
+    });
 
-    function handleMouseMove(e) {
-      if (!isDragging) return;
-      const delta = e.clientX - startX;
-      if (Math.abs(delta) >= 10) {
-        currentFrame = (currentFrame + (delta > 0 ? -1 : 1) + totalFrames - 1) % totalFrames + 1;
-        updateImage();
-        startX = e.clientX;
-      }
-    }
-
-    function handleMouseUp() {
+    window.addEventListener('mouseup', function () {
       isDragging = false;
-      restartSpinning();
-    }
+    });
+
+    canvas.addEventListener('mousemove', function (e) {
+      if (isDragging) {
+        const deltaX = e.clientX - lastX;
+        if (Math.abs(deltaX) > 5) {
+          currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
+          drawFrame(currentFrame);
+          lastX = e.clientX;
+          resetInactivity();
+        }
+      }
+    });
 
     // Touch support
-    function handleTouchStart(e) {
-      startX = e.touches[0].clientX;
-      stopSpinning();
-    }
+    canvas.addEventListener('touchstart', function (e) {
+      isDragging = true;
+      lastX = e.touches[0].clientX;
+      resetInactivity();
+    });
 
-    function handleTouchMove(e) {
-      const delta = e.touches[0].clientX - startX;
-      if (Math.abs(delta) >= 10) {
-        currentFrame = (currentFrame + (delta > 0 ? -1 : 1) + totalFrames - 1) % totalFrames + 1;
-        updateImage();
-        startX = e.touches[0].clientX;
+    canvas.addEventListener('touchend', function () {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('touchmove', function (e) {
+      if (isDragging) {
+        const deltaX = e.touches[0].clientX - lastX;
+        if (Math.abs(deltaX) > 5) {
+          currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
+          drawFrame(currentFrame);
+          lastX = e.touches[0].clientX;
+          resetInactivity();
+        }
       }
-    }
+    });
 
-    function handleTouchEnd() {
-      restartSpinning();
-    }
-
-    // Event Listeners
-    image.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    image.addEventListener("touchstart", handleTouchStart);
-    window.addEventListener("touchmove", handleTouchMove);
-    window.addEventListener("touchend", handleTouchEnd);
-
-    // Start spinning on load
-    updateImage();
-    spinFrames();
+    preloadImages(function () {
+      drawFrame(currentFrame);
+      rotate();
+    });
   </script>
 </body>
 </html>
-
