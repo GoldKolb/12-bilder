@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>360° Schmuck</title>
   <style>
     body {
@@ -46,7 +46,7 @@
       for (let i = 1; i <= totalImages; i++) {
         const img = new Image();
         const number = i < 10 ? '0' + i : i;
-        img.src = 'EinzelA' + number + '.JPG';
+        img.src = 'EinzelA' + number + '.JPG';  // Deine Dateinamen
         img.onload = function () {
           loaded++;
           if (loaded === totalImages) {
@@ -63,7 +63,7 @@
     }
 
     function rotate() {
-      if (autoRotate) {
+      if (autoRotate && !isDragging) { // Automatisch nur wenn nicht gezogen wird
         currentFrame = (currentFrame + 1) % totalImages;
         drawFrame(currentFrame);
       }
@@ -78,7 +78,9 @@
       }, 5000);
     }
 
+    // Maus Events
     canvas.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return; // Nur Linksklick
       isDragging = true;
       lastX = e.clientX;
       resetInactivity();
@@ -89,18 +91,18 @@
     });
 
     canvas.addEventListener('mousemove', function (e) {
-      if (isDragging) {
-        const deltaX = e.clientX - lastX;
-        if (Math.abs(deltaX) > 5) {
-          currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
-          drawFrame(currentFrame);
-          lastX = e.clientX;
-          resetInactivity();
-        }
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - lastX;
+      if (Math.abs(deltaX) > 5) {
+        currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
+        drawFrame(currentFrame);
+        lastX = e.clientX;
+        resetInactivity();
       }
     });
 
-    // Touch support
+    // Touch Events (für mobile Geräte)
     canvas.addEventListener('touchstart', function (e) {
       isDragging = true;
       lastX = e.touches[0].clientX;
@@ -112,14 +114,14 @@
     });
 
     canvas.addEventListener('touchmove', function (e) {
-      if (isDragging) {
-        const deltaX = e.touches[0].clientX - lastX;
-        if (Math.abs(deltaX) > 5) {
-          currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
-          drawFrame(currentFrame);
-          lastX = e.touches[0].clientX;
-          resetInactivity();
-        }
+      if (!isDragging) return;
+
+      const deltaX = e.touches[0].clientX - lastX;
+      if (Math.abs(deltaX) > 5) {
+        currentFrame = (currentFrame - Math.sign(deltaX) + totalImages) % totalImages;
+        drawFrame(currentFrame);
+        lastX = e.touches[0].clientX;
+        resetInactivity();
       }
     });
 
