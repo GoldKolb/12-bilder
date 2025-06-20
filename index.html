@@ -38,8 +38,8 @@
     // Lade alle Bilder
     for (let i = 1; i <= frameCount; i++) {
       const number = i.toString().padStart(2, '0'); // 01, 02, ...
-      const img = new Image();
-      img.src = `EinzelA{number}.JPG`;
+      const img = new Image();"EinzelA01.jpg"
+      img.src = `EinzelA${number}.jpg`;
       images.push(img);
     }
 
